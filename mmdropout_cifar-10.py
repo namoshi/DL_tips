@@ -251,5 +251,51 @@ def main():
     print_both("Uncertainty per class barplot saved to: mmdropout_uncertainty_per_class.png")
     print_both("\n--- Finished ---")
 
+    # --------------------------------------------------------------------------
+    # 不確実性の高い10枚のテストサンプルの詳細を表示（画像も保存＆表示）
+    # --------------------------------------------------------------------------
+    print_both("\nTop 10 most uncertain test samples:")
+    topk_idx = np.argsort(-all_entropy)[:10]
+    all_mean_probs = np.array(all_mean_probs)  # shape: (num_samples, num_classes)
+    for rank, idx in enumerate(topk_idx, 1):
+        true_label = all_labels[idx]
+        mean_probs = all_mean_probs[idx]
+        pred_label = np.argmax(mean_probs)
+        entropy = all_entropy[idx]
+        image, label = test_dataset[idx]
+        # 画像を表示・保存
+        img_np = image.numpy().transpose(1, 2, 0)
+        img_np = (img_np * np.array([0.2023, 0.1994, 0.2010])) + np.array([0.4914, 0.4822, 0.4465])
+        img_np = np.clip(img_np, 0, 1)
+        plt.figure(figsize=(2.5,2.5))
+        plt.imshow(img_np)
+        plt.axis('off')
+        plt.title(f"True: {classes[true_label]}\nPred: {classes[pred_label]}\nEntropy: {entropy:.3f}")
+        plt.tight_layout()
+        plt.savefig(f"mmdropout_uncertain_sample_{rank}.png")
+        plt.close()
+        # 画像ファイル名もログに出力
+        print_both(f"\nSample {rank}: (image saved: mmdropout_uncertain_sample_{rank}.png)")
+        print_both(f"  True label      : {classes[true_label]} ({true_label})")
+        print_both(f"  Predicted label : {classes[pred_label]} ({pred_label})")
+        print_both(f"  Uncertainty (entropy): {entropy:.4f}")
+        print_both(f"  Mean posterior probabilities:")
+        for i, prob in enumerate(mean_probs):
+            print_both(f"    {classes[i]:>6}: {prob:.4f}")
+        # 各クラスごとの不確実性（エントロピー）再計算
+        image_ = image.unsqueeze(0).to(device)
+        mc_probs = []
+        model.apply(enable_dropout)
+        with torch.no_grad():
+            for _ in range(mc_passes):
+                outputs = model(image_)
+                probs = softmax(outputs)
+                mc_probs.append(probs.cpu().numpy()[0])
+        mc_probs = np.stack(mc_probs, axis=0)  # (mc_passes, num_classes)
+        class_entropies = -np.sum(mc_probs * np.log(mc_probs + 1e-8), axis=0)
+        print_both(f"  Per-class uncertainty (entropy):")
+        for i, ce in enumerate(class_entropies):
+            print_both(f"    {classes[i]:>6}: {ce:.4f}")
+
 if __name__ == '__main__':
     main()
