@@ -4,6 +4,9 @@ images/
 trained_models/
 .ipynb_checkpoints/
 
+# trained_models
+*.pth
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
