@@ -3,6 +3,7 @@ data/
 images/
 trained_models/
 .ipynb_checkpoints/
+.conda/
 
 # trained_models
 *.pth
