@@ -11,14 +11,14 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 
 # ハイパーパラメータ
-num_epochs = 10
+num_epochs = 100
 batch_size = 128
 learning_rate = 0.001
 weight_decay = 1e-4
 
 # MLPの層サイズ
 hidden1 = 512
-hidden2 = 256
+hidden2 = 512
 
 # モデル保存ファイル名
 MODEL_PATH = "mlp_cifar10.pth"
@@ -40,12 +40,12 @@ transform_test = transforms.Compose([
 train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
 test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
 
 # Augmentationなしの訓練データで評価
 train_eval_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, download=False, transform=transform_test)
-train_eval_loader = torch.utils.data.DataLoader(train_eval_dataset, batch_size=batch_size, shuffle=False)
+train_eval_loader = torch.utils.data.DataLoader(train_eval_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
@@ -140,6 +140,14 @@ else:
     }, MODEL_PATH)
     print(f"モデルを {MODEL_PATH} に保存しました。")
 # --- ここまで追加 ---
+
+# --- 最終評価 ---
+print("\n=== Final Evaluation ===")
+train_eval_loss, train_eval_acc = evaluate(train_eval_loader)
+test_eval_loss, test_eval_acc = evaluate(test_loader)
+print(f"Train Set - Loss: {train_eval_loss:.4f}, Accuracy: {train_eval_acc:.2f}%")
+print(f"Test Set  - Loss: {test_eval_loss:.4f}, Accuracy: {test_eval_acc:.2f}%")
+print("========================\n")
 
 # 結果のプロット
 x_epochs = range(1, len(train_losses) + 1)
