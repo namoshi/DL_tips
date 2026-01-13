@@ -43,6 +43,20 @@ class ReducedWhiteningAE(nn.Module):
         return x_hat, z
 
 
+# 4'. モデル定義（線形次元削減 AE） エンコーダーをデコーダーの重みの転置$A^T$にしたバージョン
+class ReducedWhiteningAE2(nn.Module):
+    def __init__(self, in_dim, h_dim):
+        super().__init__()
+        self.A_mat = nn.Parameter(torch.empty(in_dim, h_dim))
+        nn.init.xavier_uniform_(self.A_mat)
+
+    def forward(self, x):
+        z = x @ self.A_mat
+        x_hat = z @ self.A_mat.T
+
+        return x_hat, z
+
+
 class SimpleNet(nn.Module):
     def __init__(
             self, 
@@ -84,9 +98,9 @@ class SimpleNet(nn.Module):
         return out
 
 
-model = ReducedWhiteningAE(input_dim, hidden_dim).to(device)
+model = ReducedWhiteningAE2(input_dim, hidden_dim).to(device)
 optimizer = optim.Adam(model.parameters(), lr=0.002)
-save_path = './trained_models/saved_ae_mnist.pth'
+save_path = './trained_models/saved_ae2_mnist.pth'
 
 # 5. モデルが既に保存されていればロードして学習をスキップ
 if os.path.exists(save_path):
